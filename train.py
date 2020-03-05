@@ -45,11 +45,11 @@ def get_model_func(model_arch: Callable, opt_func: Callable, work_dir : str,
         probabilities = tf.nn.softmax(logits)
         var = None
         with tf.name_scope('loss'):
-            ce_loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits, reduction=reduction)
-            tf.summary.scalar('loss', ce_loss)
+            ce_loss = tf.compat.v1.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits, reduction=reduction)
+            tf.compat.v1.summary.scalar('loss', ce_loss)
         with tf.name_scope('accuracy'):
             accuracy = tf.compat.v1.metrics.accuracy(labels=labels, predictions=y_pred)
-            tf.summary.scalar('accuracy', accuracy[1])
+            tf.compat.v1.summary.scalar('accuracy', accuracy[1])
 
         # PREDICT MODE
         predictions = {
@@ -68,15 +68,15 @@ def get_model_func(model_arch: Callable, opt_func: Callable, work_dir : str,
         if mode == tf.estimator.ModeKeys.TRAIN:
             step = tf.compat.v1.train.get_or_create_global_step()
             opt = opt_func()
-            grads_and_vars = opt.compute_gradients(ce_loss) # by default var_list=tf.compat.v1.trainable_variables()             
+            grads_and_vars = opt.compute_gradients(ce_loss) # by default var_list=tf.compat.v1.trainable_variables()
             with tf.control_dependencies(model.get_updates_for(features)):
                 train_op = opt.apply_gradients(grads_and_vars, global_step=step)
 
         # Create a hook to print loss every 100 iter.
         train_hook_list= []
-        train_tensors_log = tf.train.LoggingTensorHook({'accuracy': accuracy[1],'loss': ce_loss,'global_step': step},
+        train_tensors_log = tf.estimator.LoggingTensorHook({'accuracy': accuracy[1],'loss': ce_loss,'global_step': step},
                                                         every_n_iter=100)
-        train_profiler = tf.train.ProfilerHook(save_steps=100, output_dir= os.path.join(work_dir,"tracing"))
+        train_profiler = tf.estimator.ProfilerHook(save_steps=100, output_dir= os.path.join(work_dir,"tracing"))
         train_hook_list.append(train_tensors_log)
         train_hook_list.append(train_profiler)
         return tf.estimator.EstimatorSpec(mode=mode, loss=ce_loss,

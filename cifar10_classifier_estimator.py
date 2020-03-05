@@ -70,7 +70,7 @@ def CIFAR10_classifier_estimator(_):
 
     # Model specs to be passed to tf.estimator
     model_func = train.get_model_func(model_arch.Resnet9, opt_func, work_dir,
-                                        reduction = tf.losses.Reduction.SUM)
+                                        reduction = tf.compat.v1.losses.Reduction.SUM)
 
     # Create a estimator with model_fn
     image_classifier = tf.estimator.Estimator(model_fn = model_func, model_dir = work_dir)

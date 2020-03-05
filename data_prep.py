@@ -57,21 +57,15 @@ def tfrecord_ds(file_pattern: str, parser, batch_size: int, training: bool = Tru
 
     # Data extraction
     files = tf.data.Dataset.list_files(file_pattern)
-
     # Parallelized Data Extraction
-    dataset = files.apply(tf.data.experimental.parallel_interleave(tf.data.TFRecordDataset,
-                                                                   cycle_length=n_cores,
-                                                                   sloppy=True))
-
+    dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=n_cores, num_parallel_calls=n_cores)
     # For training data, randomize the order of sequences and repeat
     if training:
         dataset = dataset.shuffle(shuffle_buf_sz)
         dataset = dataset.repeat()
-
     # Parallelized Data Transformation
-    dataset = dataset.apply(tf.data.experimental.map_and_batch(map_func=parser, batch_size=batch_size,
-                                                               num_parallel_batches=n_cores,
-                                                               drop_remainder=True))
+    dataset = dataset.map(map_func=parser,num_parallel_calls=n_cores)
+    dataset = dataset.batch(batch_size=batch_size, drop_remainder=True)
     # Pipelining the data to decrease idle time
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
     return dataset
